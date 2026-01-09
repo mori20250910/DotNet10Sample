@@ -1,0 +1,55 @@
+@page
+@model RegisterModel
+@{
+    ViewData["Title"] = "品目登録";
+}
+
+<h1 class="mb-4">品目登録</h1>
+
+<form method="post" novalidate>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Input.ItemCode" class="form-label"></label>
+        <input asp-for="Input.ItemCode" class="form-control" />
+        <span asp-validation-for="Input.ItemCode" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.ItemName" class="form-label"></label>
+        <input asp-for="Input.ItemName" class="form-control" />
+        <span asp-validation-for="Input.ItemName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.CategoryCode" class="form-label"></label>
+        <select asp-for="Input.CategoryCode" class="form-select">
+            <option value="">-- 未選択 --</option>
+            @foreach (var c in Model.Categories)
+            {
+                <option value="@c.Code">@c.Code - @c.Name</option>
+            }
+        </select>
+        <span asp-validation-for="Input.CategoryCode" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Input.Remarks" class="form-label"></label>
+        <textarea asp-for="Input.Remarks" class="form-control"></textarea>
+        <span asp-validation-for="Input.Remarks" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">登録</button>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.ResultMessage))
+{
+    <div class="alert alert-success mt-3" role="alert">
+        @Model.ResultMessage
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
