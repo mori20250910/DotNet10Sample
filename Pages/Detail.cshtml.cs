@@ -17,6 +17,15 @@ public class DetailModel : PageModel
     [BindProperty(SupportsGet = true)]
     public int Id { get; set; }
 
+    [BindProperty(SupportsGet = true)]
+    public string? ReturnItemName { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? ReturnItemCode { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? ReturnCategoryCode { get; set; }
+
     public ItemRepository.Item? Item { get; private set; }
 
     [BindProperty]
@@ -30,6 +39,9 @@ public class DetailModel : PageModel
 
     [BindProperty]
     public string? Remarks { get; set; }
+
+    [BindProperty]
+    public DateTime? ManufactureStartDate { get; set; }
 
     public List<ItemRepository.ItemCategory> Categories { get; private set; } = new();
 
@@ -54,6 +66,7 @@ public class DetailModel : PageModel
             ItemName = Item.Name;
             CategoryCode = Item.CategoryCode;
             Remarks = Item.Remarks;
+            ManufactureStartDate = Item.ManufactureStartDate;
 
             Categories = await _repository.GetItemCategoriesAsync();
         }
@@ -105,7 +118,8 @@ public class DetailModel : PageModel
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return BadRequest(new { success = false, errors = ModelState[nameof(ItemName)].Errors.Select(e => e.ErrorMessage).ToArray() });
+                var errors = ModelState[nameof(ItemName)]?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new[] { "品目名を入力してください。" };
+                return BadRequest(new { success = false, errors });
             }
 
             return Page();
@@ -118,7 +132,8 @@ public class DetailModel : PageModel
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return BadRequest(new { success = false, errors = ModelState[nameof(ItemName)].Errors.Select(e => e.ErrorMessage).ToArray() });
+                var errors = ModelState[nameof(ItemName)]?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new[] { "品目名は10文字以内で入力してください。" };
+                return BadRequest(new { success = false, errors });
             }
 
             return Page();
@@ -132,7 +147,8 @@ public class DetailModel : PageModel
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return BadRequest(new { success = false, errors = ModelState[nameof(Remarks)].Errors.Select(e => e.ErrorMessage).ToArray() });
+                var errors = ModelState[nameof(Remarks)]?.Errors.Select(e => e.ErrorMessage).ToArray() ?? new[] { "備考は100文字以内で入力してください。" };
+                return BadRequest(new { success = false, errors });
             }
 
             return Page();
@@ -140,14 +156,14 @@ public class DetailModel : PageModel
 
         try
         {
-            await _repository.UpdateAsync(Id, ItemCode, ItemName, string.IsNullOrWhiteSpace(CategoryCode) ? null : CategoryCode, string.IsNullOrWhiteSpace(Remarks) ? null : Remarks);
+            await _repository.UpdateAsync(Id, ItemCode, ItemName, string.IsNullOrWhiteSpace(CategoryCode) ? null : CategoryCode, string.IsNullOrWhiteSpace(Remarks) ? null : Remarks, ManufactureStartDate);
 
             // 更新後の表示用に最新情報を取得
             Item = await _repository.GetByIdAsync(Id);
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
             {
-                return new JsonResult(new { success = true, message = "品目を更新しました。", code = Item?.Code, name = Item?.Name, category = Item?.CategoryCode, remarks = Item?.Remarks });
+                return new JsonResult(new { success = true, message = "品目を更新しました。", code = Item?.Code, name = Item?.Name, category = Item?.CategoryCode, remarks = Item?.Remarks, manufactureStartDate = Item?.ManufactureStartDate.HasValue == true ? Item?.ManufactureStartDate.Value.ToString("yyyy-MM-dd") : null });
             }
 
             TempData["SuccessMessage"] = "品目を更新しました。";

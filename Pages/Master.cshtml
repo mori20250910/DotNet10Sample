@@ -24,6 +24,7 @@
             <select id="selectedMaster" name="SelectedMaster" class="form-select" onchange="this.form.submit()">
                 <option value="">-- 選択してください --</option>
                 <option value="ItemCategory">品目カテゴリ</option>
+                <option value="Holiday">祝日設定</option>
             </select>
         </div>
     </div>
@@ -96,6 +97,59 @@
                     }
                 </tbody>
             </table>
+        </div>
+    </div>
+}
+
+@if (Model.SelectedMaster == "Holiday")
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>祝日設定</h5>
+
+            <form method="post" asp-page-handler="AddHoliday" class="row g-2 align-items-end mb-3">
+                @Html.AntiForgeryToken()
+                <div class="col-auto">
+                    <label class="form-label">祝日を追加</label>
+                    <input type="date" asp-for="NewHolidayDate" class="form-control" />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">追加</button>
+                </div>
+            </form>
+
+            <hr />
+
+            @if (Model.Holidays.Any())
+            {
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>祝日</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var holiday in Model.Holidays)
+                        {
+                            <tr>
+                                <td>@holiday.HolidayDate.ToString("yyyy年MM月dd日（ddd）")</td>
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="DeleteHoliday" class="d-inline" onsubmit="return confirm('削除してもよいですか？');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="DeleteHolidayId" value="@holiday.Id" />
+                                        <button type="submit" class="btn btn-sm btn-danger">削除</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="text-muted">祝日が設定されていません。</p>
+            }
         </div>
     </div>
 }

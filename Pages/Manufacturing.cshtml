@@ -1,0 +1,281 @@
+@page
+@model ManufacturingModel
+@{
+    ViewData["Title"] = "製造計画";
+}
+
+<h1 class="mb-4">製造計画</h1>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+
+<div class="row mb-3">
+    <div class="col-auto">
+        <form method="get" class="d-flex align-items-end gap-2">
+            <div>
+                <label class="form-label">月選択</label>
+                <input type="month" id="yearMonth" name="YearMonth" class="form-control" value="@Model.YearMonth" />
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" id="prevMonthBtn" class="btn btn-outline-secondary">◀ 前月</button>
+                <button type="button" id="nextMonthBtn" class="btn btn-outline-secondary">次月 ▶</button>
+            </div>
+            <button type="submit" class="btn btn-primary">表示</button>
+        </form>
+    </div>
+</div>
+
+<div class="mb-2">
+    <p class="text-muted">
+        表示期間：<strong>@Model.StartDate?.ToString("yyyy年M月d日")</strong> ～ <strong>@Model.EndDate?.ToString("M月d日")</strong>
+    </p>
+</div>
+
+<form id="planForm" method="post" asp-page-handler="Save" novalidate>
+    <input type="hidden" id="yearMonthHidden" name="YearMonth" value="@Model.YearMonth" />
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm" style="table-layout: fixed;">
+            <colgroup>
+                <col style="width: 188px;">
+            </colgroup>
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="width: 188px; position: sticky; left: 0; background-color: #f8f9fa; min-width: 188px; padding: 8px;">品目</th>
+                    @foreach (var date in Model.PlanDates)
+                    {
+                        var isHoliday = Model.Holidays.Contains(date.Date);
+                        <th style="text-align: center; min-width: 80px; @(isHoliday ? "background-color: #ffcccb;" : "")">
+                            @date.ToString("M/d")<br />
+                            <small class="text-muted">(@date.ToString("ddd"))</small>
+                            @if (isHoliday)
+                            {
+                                <br /><span class="badge bg-danger">祝</span>
+                            }
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td style="width: 188px; min-width: 188px; position: sticky; left: 0; background-color: #f8f9fa; padding: 8px; overflow-wrap: break-word;">
+                            <strong>@item.Name</strong>
+                            @if (Model.ItemManufactureStartDates.ContainsKey(item.Id) && Model.ItemManufactureStartDates[item.Id].HasValue)
+                            {
+                                <div class="small text-muted">製造開始: @Model.ItemManufactureStartDates[item.Id].Value.ToString("yyyy/M/d")</div>
+                            }
+                        </td>
+                        @foreach (var date in Model.PlanDates)
+                        {
+                            var quantity = Model.PlanData.ContainsKey((item.Id, date)) ? Model.PlanData[(item.Id, date)] : 0;
+                            var isBeforeManufactureStart = Model.ItemManufactureStartDates.ContainsKey(item.Id) && 
+                                                           Model.ItemManufactureStartDates[item.Id].HasValue && 
+                                                           date < Model.ItemManufactureStartDates[item.Id].Value;
+                            var isHoliday = Model.Holidays.Contains(date.Date);
+                            <td style="text-align: center; @(isHoliday ? "background-color: #ffcccb;" : "")">
+                                <input 
+                                    type="text" 
+                                    name="qty_@(item.Id)_@(date.ToString("yyyy-MM-dd"))" 
+                                    class="form-control form-control-sm qty-input" 
+                                    value="@(quantity > 0 ? quantity.ToString() : "")" 
+                                    placeholder="-"
+                                    style="text-align: center; padding: 6px 4px;"
+                                    data-item-id="@item.Id"
+                                    data-plan-date="@date.ToString("yyyy-MM-dd")"
+                                    @(isBeforeManufactureStart || isHoliday ? "disabled" : "")
+                                    />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div id="validationMessage" class="text-danger mt-2 mb-3"></div>
+
+    <div class="d-flex justify-content-end gap-2">
+        <button type="button" id="saveBtn" class="btn btn-primary">保存</button>
+        <a asp-page="/Index" class="btn btn-secondary">メニューに戻る</a>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function() {
+            const yearMonthInput = document.getElementById('yearMonth');
+            const prevMonthBtn = document.getElementById('prevMonthBtn');
+            const nextMonthBtn = document.getElementById('nextMonthBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const planForm = document.getElementById('planForm');
+            const validationMessage = document.getElementById('validationMessage');
+
+            // Previous month button handler
+            prevMonthBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!yearMonthInput.value) return;
+                
+                const [year, month] = yearMonthInput.value.split('-').map(Number);
+                let newMonth = month - 1;
+                let newYear = year;
+                
+                if (newMonth < 1) {
+                    newMonth = 12;
+                    newYear--;
+                }
+                
+                yearMonthInput.value = `${newYear}-${String(newMonth).padStart(2, '0')}`;
+                yearMonthInput.form.submit();
+            });
+
+            // Next month button handler
+            nextMonthBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!yearMonthInput.value) return;
+                
+                const [year, month] = yearMonthInput.value.split('-').map(Number);
+                let newMonth = month + 1;
+                let newYear = year;
+                
+                if (newMonth > 12) {
+                    newMonth = 1;
+                    newYear++;
+                }
+                
+                yearMonthInput.value = `${newYear}-${String(newMonth).padStart(2, '0')}`;
+                yearMonthInput.form.submit();
+            });
+
+            // Save button handler
+            saveBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                validationMessage.textContent = '';
+
+                // Validate quantity inputs
+                const qtyInputs = document.querySelectorAll('.qty-input');
+                let hasErrors = false;
+                let errorMessages = [];
+
+                qtyInputs.forEach(input => {
+                    const value = input.value.trim();
+                    if (value === '') {
+                        // Empty is allowed, skip validation
+                        return;
+                    }
+
+                    const quantity = parseInt(value, 10);
+                    if (isNaN(quantity) || quantity < 1 || quantity > 99) {
+                        hasErrors = true;
+                        const itemId = input.dataset.itemId;
+                        const planDate = input.dataset.planDate;
+                        errorMessages.push(`品目ID ${itemId} の ${new Date(planDate).toLocaleDateString('ja-JP', { month: '2-digit', day: '2-digit' })} は1～99の数字のみ入力可能です。`);
+                    }
+                });
+
+                if (hasErrors) {
+                    validationMessage.textContent = errorMessages.join(' ');
+                    return;
+                }
+
+                // Submit form
+                const formData = new FormData(planForm);
+                // Ensure YearMonth is set in the hidden field
+                const yearMonthField = document.getElementById('yearMonthHidden');
+                formData.set('YearMonth', yearMonthInput.value);
+
+                const body = new URLSearchParams();
+                for (const pair of formData.entries()) {
+                    body.append(pair[0], pair[1]);
+                }
+
+                fetch(window.location.pathname + '?handler=Save', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: body
+                })
+                .then(res => {
+                    if (res.ok) {
+                        return res.json();
+                    } else if (res.status === 400) {
+                        return res.json().then(data => {
+                            throw data;
+                        });
+                    } else {
+                        throw new Error('Server error');
+                    }
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert('製造計画を保存しました。');
+                        location.reload();
+                    } else {
+                        validationMessage.innerHTML = '<strong>保存に失敗しました:</strong><br />' + (data.errors || []).join('<br />');
+                    }
+                })
+                .catch(err => {
+                    if (err.errors) {
+                        validationMessage.innerHTML = '<strong>エラーが発生しました:</strong><br />' + err.errors.join('<br />');
+                    } else {
+                        validationMessage.textContent = '通信エラーが発生しました。';
+                    }
+                });
+            });
+
+            // Format input to allow only 1-99
+            document.querySelectorAll('.qty-input').forEach(input => {
+                input.addEventListener('blur', function() {
+                    const value = this.value.trim();
+                    if (value === '') {
+                        return;
+                    }
+                    const quantity = parseInt(value, 10);
+                    if (isNaN(quantity) || quantity < 1 || quantity > 99) {
+                        // Invalid, clear it
+                        this.value = '';
+                    } else {
+                        // Valid, format without leading zeros
+                        this.value = quantity.toString();
+                    }
+                });
+
+                // Prevent non-numeric input
+                input.addEventListener('keypress', function(e) {
+                    if (!/[0-9]/.test(e.key)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        })();
+    </script>
+
+    <style>
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table-responsive {
+            max-height: 600px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+
+        .qty-input {
+            font-weight: bold;
+        }
+
+        .qty-input:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        thead th {
+            vertical-align: middle;
+        }
+    </style>
+}

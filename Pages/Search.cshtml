@@ -31,6 +31,14 @@
                             <label for="CategoryCode" class="form-label">品目カテゴリ</label>
                             <select id="CategoryCode" name="CategoryCode" class="form-select">
                                 <option value="">-- 未選択 --</option>
+                                @if (Model.CategoryCode == "__NULL__")
+                                {
+                                    <option value="__NULL__" selected>-- 未設定（NULL） --</option>
+                                }
+                                else
+                                {
+                                    <option value="__NULL__">-- 未設定（NULL） --</option>
+                                }
                                 @foreach (var c in Model.Categories)
                                 {
                                     if (Model.CategoryCode == c.Code)
@@ -72,6 +80,7 @@
                                 <th>品目コード</th>
                                 <th>品目名</th>
                                 <th>カテゴリ</th>
+                                <th>製造開始年月日</th>
                                 <th>備考</th>
                             </tr>
                         </thead>
@@ -83,6 +92,7 @@
                                     <td>@item.Code</td>
                                     <td>@item.Name</td>
                                     <td>@item.CategoryName</td>
+                                    <td>@(item.ManufactureStartDate.HasValue ? item.ManufactureStartDate.Value.ToString("yyyy-MM-dd") : "")</td>
                                     <td>@item.Remarks</td>
                                 </tr>
                             }
@@ -97,6 +107,10 @@
                 {
                     <p class="text-muted">検索条件を入力して検索ボタンをクリックしてください。</p>
                 }
+
+                <div class="d-flex justify-content-end mt-3">
+                    <button type="button" id="exportCsv" class="btn btn-outline-secondary" @(Model.SearchResults.Any() ? "" : "disabled")>CSVダウンロード</button>
+                </div>
             </div>
         </div>
     </div>
@@ -108,7 +122,15 @@
             row.style.cursor = 'pointer';
             row.addEventListener('dblclick', function() {
                 var itemId = this.getAttribute('data-item-id');
-                window.location.href = '@Url.Page("/Detail")?id=' + itemId;
+                var code = document.getElementById('ItemCode')?.value || '';
+                var name = document.getElementById('ItemName')?.value || '';
+                var category = document.getElementById('CategoryCode')?.value || '';
+                var params = new URLSearchParams();
+                params.append('id', itemId);
+                if (code) params.append('ReturnItemCode', code);
+                if (name) params.append('ReturnItemName', name);
+                if (category) params.append('ReturnCategoryCode', category);
+                window.location.href = '@Url.Page("/Detail")' + '?' + params.toString();
             });
             row.addEventListener('mouseenter', function() {
                 this.style.backgroundColor = '#f0f0f0';
@@ -134,6 +156,24 @@
                 // Clear any validation messages (client-side summary)
                 var summary = document.querySelector('[asp-validation-summary]');
                 if (summary) summary.innerHTML = '';
+            });
+        })();
+
+        // CSV export button: constructs query string from current inputs and navigates to handler=ExportCsv
+        (function() {
+            var exportBtn = document.getElementById('exportCsv');
+            if (!exportBtn) return;
+            exportBtn.addEventListener('click', function() {
+                var code = document.getElementById('ItemCode')?.value || '';
+                var name = document.getElementById('ItemName')?.value || '';
+                var category = document.getElementById('CategoryCode')?.value || '';
+                var params = new URLSearchParams();
+                if (code) params.append('ItemCode', code);
+                if (name) params.append('ItemName', name);
+                if (category) params.append('CategoryCode', category);
+                params.append('handler', 'ExportCsv');
+                var url = '@Url.Page("/Search")' + '?' + params.toString();
+                window.location.href = url;
             });
         })();
     </script>

@@ -40,11 +40,11 @@ public class RegisterModel : PageModel
             // additional server-side uniqueness check
             if (await _repository.ExistsItemCodeAsync(Input.ItemCode))
             {
-                ModelState.AddModelError(nameof(Input.ItemCode), "品目コードは既に使用されています。");
+                ModelState.AddModelError("Input.ItemCode", "品目コードは既に使用されています。");
                 return Page();
             }
 
-            var id = await _repository.InsertAsync(Input.ItemCode, Input.ItemName, string.IsNullOrWhiteSpace(Input.CategoryCode) ? null : Input.CategoryCode, string.IsNullOrWhiteSpace(Input.Remarks) ? null : Input.Remarks);
+            var id = await _repository.InsertAsync(Input.ItemCode, Input.ItemName, string.IsNullOrWhiteSpace(Input.CategoryCode) ? null : Input.CategoryCode, string.IsNullOrWhiteSpace(Input.Remarks) ? null : Input.Remarks, Input.ManufactureStartDate);
             ResultMessage = $"登録しました (ID: {id})";
             ModelState.Clear();
             Input = new ItemInput();
@@ -75,6 +75,10 @@ public class RegisterModel : PageModel
 
         [Display(Name = "品目カテゴリ")]
         public string? CategoryCode { get; set; }
+
+        [DataType(DataType.Date)]
+        [Display(Name = "製造開始年月日")]
+        public DateTime? ManufactureStartDate { get; set; }
 
         [StringLength(100, ErrorMessage = "備考は100文字以内で入力してください。")]
         [Display(Name = "備考")]

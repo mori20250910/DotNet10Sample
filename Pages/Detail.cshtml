@@ -51,6 +51,11 @@
                     </select>
                     <span asp-validation-for="CategoryCode" class="text-danger"></span>
                 </div>
+                    <div class="mb-3">
+                        <label class="form-label">製造開始年月日</label>
+                        <input asp-for="ManufactureStartDate" id="manufactureDateInput" type="date" class="form-control" readonly data-original="@Model.Item?.ManufactureStartDate?.ToString("yyyy-MM-dd")" />
+                        <span asp-validation-for="ManufactureStartDate" class="text-danger"></span>
+                    </div>
 
                 <div class="mb-3">
                     <label class="form-label">備考</label>
@@ -69,7 +74,7 @@
                     <button type="button" id="updateButton" class="btn btn-primary ms-2" disabled>更新</button>
                 </div>
                 <div>
-                    <a asp-page="/Search" class="btn btn-secondary">検索画面に戻る</a>
+                    <a id="backLink" asp-page="/Search" class="btn btn-secondary">検索画面に戻る</a>
                 </div>
             </div>
 
@@ -84,11 +89,13 @@
                     const codeInput = document.getElementById('itemCodeInput');
                     const categorySelect = document.getElementById('categorySelect');
                     const remarksInput = document.getElementById('remarksInput');
+                        const manufactureInput = document.getElementById('manufactureDateInput');
                     // initialize originals from dataset attributes (stable DOM values) or current values as fallback
                     let original = {
                         code: (codeInput && codeInput.dataset && codeInput.dataset.original) ? codeInput.dataset.original : (codeInput ? codeInput.value : ''),
                         name: (input && input.dataset && input.dataset.original) ? input.dataset.original : (input ? input.value : ''),
                         category: (categorySelect && categorySelect.dataset && categorySelect.dataset.original) ? categorySelect.dataset.original : (categorySelect ? categorySelect.value : ''),
+                            manufactureStartDate: (manufactureInput && manufactureInput.dataset && manufactureInput.dataset.original) ? manufactureInput.dataset.original : (manufactureInput ? manufactureInput.value : ''),
                         remarks: (remarksInput && remarksInput.dataset && remarksInput.dataset.original) ? remarksInput.dataset.original : (remarksInput ? remarksInput.value : '')
                     };
 
@@ -102,6 +109,7 @@
                         if (isReadOnly) {
                             input.removeAttribute('readonly');
                             categorySelect.removeAttribute('disabled');
+                            manufactureInput && manufactureInput.removeAttribute('readonly');
                             remarksInput.removeAttribute('readonly');
                             input.focus();
                             updateBtn.disabled = false;
@@ -110,6 +118,7 @@
                             input.setAttribute('readonly', 'readonly');
                             codeInput.setAttribute('readonly', 'readonly');
                             categorySelect.setAttribute('disabled', 'disabled');
+                            manufactureInput && manufactureInput.setAttribute('readonly', 'readonly');
                             remarksInput.setAttribute('readonly', 'readonly');
                             updateBtn.disabled = true;
                             editBtn.textContent = '更新モード';
@@ -117,6 +126,7 @@
                             input.value = (input && input.dataset && input.dataset.original) ? input.dataset.original : original.name;
                             codeInput.value = (codeInput && codeInput.dataset && codeInput.dataset.original) ? codeInput.dataset.original : original.code;
                             categorySelect.value = (categorySelect && categorySelect.dataset && categorySelect.dataset.original) ? categorySelect.dataset.original : original.category;
+                            if (manufactureInput) manufactureInput.value = (manufactureInput && manufactureInput.dataset && manufactureInput.dataset.original) ? manufactureInput.dataset.original : original.manufactureStartDate;
                             remarksInput.value = (remarksInput && remarksInput.dataset && remarksInput.dataset.original) ? remarksInput.dataset.original : original.remarks;
                             validationMessage.textContent = '';
                             ajaxMessage.textContent = '';
@@ -160,17 +170,20 @@
                                         code: data.code || formData.get('ItemCode'),
                                         name: data.name || formData.get('ItemName'),
                                         category: data.category || formData.get('CategoryCode'),
-                                        remarks: data.remarks || formData.get('Remarks')
+                                        remarks: data.remarks || formData.get('Remarks'),
+                                        manufactureStartDate: data.manufactureStartDate || formData.get('ManufactureStartDate')
                                     };
                                     // update DOM dataset originals so cancel always restores server-canonical values
                                     codeInput.dataset.original = original.code || '';
                                     input.dataset.original = original.name || '';
+                                    manufactureInput && (manufactureInput.dataset.original = original.manufactureStartDate || '');
                                     categorySelect.dataset.original = original.category || '';
                                     remarksInput.dataset.original = original.remarks || '';
 
                                     input.setAttribute('readonly', 'readonly');
                                     codeInput.setAttribute('readonly', 'readonly');
                                     categorySelect.setAttribute('disabled', 'disabled');
+                                    manufactureInput && manufactureInput.setAttribute('readonly', 'readonly');
                                     remarksInput.setAttribute('readonly', 'readonly');
                                     updateBtn.disabled = true;
                                     editBtn.textContent = '更新モード';
@@ -191,6 +204,24 @@
                             showMessage('通信エラーが発生しました。', false);
                         }
                     });
+                })();
+
+                // Set back link with return parameters
+                (function() {
+                    const backLink = document.getElementById('backLink');
+                    const returnItemCode = '@Model.ReturnItemCode';
+                    const returnItemName = '@Model.ReturnItemName';
+                    const returnCategoryCode = '@Model.ReturnCategoryCode';
+                    
+                    if (backLink) {
+                        const params = new URLSearchParams();
+                        if (returnItemCode) params.append('ItemCode', returnItemCode);
+                        if (returnItemName) params.append('ItemName', returnItemName);
+                        if (returnCategoryCode) params.append('CategoryCode', returnCategoryCode);
+                        // Always indicate that we're returning from detail view
+                        params.append('IsReturningFromDetail', 'true');
+                        backLink.href = '@Url.Page("/Search")' + '?' + params.toString();
+                    }
                 })();
             </script>
         </div>

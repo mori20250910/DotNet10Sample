@@ -32,11 +32,24 @@ public class MasterModel : PageModel
     [BindProperty]
     public string DeleteCode { get; set; } = string.Empty;
 
+    // Holiday management properties
+    public List<ItemRepository.CustomHoliday> Holidays { get; private set; } = new();
+
+    [BindProperty]
+    public string? NewHolidayDate { get; set; }
+
+    [BindProperty]
+    public int DeleteHolidayId { get; set; }
+
     public async Task<IActionResult> OnGetAsync()
     {
         if (SelectedMaster == "ItemCategory")
         {
             Categories = await _repository.GetItemCategoriesAsync();
+        }
+        else if (SelectedMaster == "Holiday")
+        {
+            Holidays = await _repository.GetCustomHolidaysAsync();
         }
 
         return Page();
@@ -115,5 +128,51 @@ public class MasterModel : PageModel
         }
 
         return RedirectToPage(new { SelectedMaster = "ItemCategory" });
+    }
+
+    public async Task<IActionResult> OnPostAddHolidayAsync()
+    {
+        if (string.IsNullOrWhiteSpace(NewHolidayDate) || !DateTime.TryParse(NewHolidayDate, out var holidayDate))
+        {
+            TempData["ErrorMessage"] = "有効な日付を入力してください。";
+            return RedirectToPage(new { SelectedMaster = "Holiday" });
+        }
+
+        try
+        {
+            await _repository.InsertCustomHolidayAsync(holidayDate);
+            TempData["SuccessMessage"] = "祝日を追加しました。";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["ErrorMessage"] = ex.Message;
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "祝日の追加に失敗しました。";
+        }
+
+        return RedirectToPage(new { SelectedMaster = "Holiday" });
+    }
+
+    public async Task<IActionResult> OnPostDeleteHolidayAsync()
+    {
+        if (DeleteHolidayId <= 0)
+        {
+            TempData["ErrorMessage"] = "IDが指定されていません。";
+            return RedirectToPage(new { SelectedMaster = "Holiday" });
+        }
+
+        try
+        {
+            await _repository.DeleteCustomHolidayAsync(DeleteHolidayId);
+            TempData["SuccessMessage"] = "祝日を削除しました。";
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "祝日の削除に失敗しました。";
+        }
+
+        return RedirectToPage(new { SelectedMaster = "Holiday" });
     }
 }
