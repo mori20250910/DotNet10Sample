@@ -114,6 +114,10 @@
                     <input type="date" asp-for="NewHolidayDate" class="form-control" />
                 </div>
                 <div class="col-auto">
+                    <label class="form-label">コメント</label>
+                    <input asp-for="NewHolidayComment" class="form-control" maxlength="200" style="min-width:300px;" />
+                </div>
+                <div class="col-auto">
                     <button type="submit" class="btn btn-primary">追加</button>
                 </div>
             </form>
@@ -126,6 +130,7 @@
                     <thead>
                         <tr>
                             <th>祝日</th>
+                            <th>コメント</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -134,8 +139,16 @@
                         {
                             <tr>
                                 <td>@holiday.HolidayDate.ToString("yyyy年MM月dd日（ddd）")</td>
+                                <td>
+                                    <form method="post" asp-page-handler="EditHoliday" class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="EditHolidayId" value="@holiday.Id" />
+                                        <input name="EditHolidayComment" value="@holiday.Comment" class="form-control" maxlength="200" style="max-width:360px;" />
+                                        <button type="submit" class="btn btn-sm btn-primary ms-2">保存</button>
+                                    </form>
+                                </td>
                                 <td class="text-end">
-                                    <form method="post" asp-page-handler="DeleteHoliday" class="d-inline" onsubmit="return confirm('削除してもよいですか？');">
+                                    <form method="post" asp-page-handler="DeleteHoliday" class="d-inline ms-2" onsubmit="return confirm('削除してもよいですか？');">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="DeleteHolidayId" value="@holiday.Id" />
                                         <button type="submit" class="btn btn-sm btn-danger">削除</button>

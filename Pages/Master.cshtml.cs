@@ -39,7 +39,17 @@ public class MasterModel : PageModel
     public string? NewHolidayDate { get; set; }
 
     [BindProperty]
+    public string? NewHolidayComment { get; set; }
+
+    [BindProperty]
     public int DeleteHolidayId { get; set; }
+
+    // For editing comment
+    [BindProperty]
+    public int EditHolidayId { get; set; }
+
+    [BindProperty]
+    public string? EditHolidayComment { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -140,7 +150,7 @@ public class MasterModel : PageModel
 
         try
         {
-            await _repository.InsertCustomHolidayAsync(holidayDate);
+            await _repository.InsertCustomHolidayAsync(holidayDate, NewHolidayComment);
             TempData["SuccessMessage"] = "祝日を追加しました。";
         }
         catch (InvalidOperationException ex)
@@ -171,6 +181,33 @@ public class MasterModel : PageModel
         catch (Exception)
         {
             TempData["ErrorMessage"] = "祝日の削除に失敗しました。";
+        }
+
+        return RedirectToPage(new { SelectedMaster = "Holiday" });
+    }
+
+    public async Task<IActionResult> OnPostEditHolidayAsync()
+    {
+        if (EditHolidayId <= 0)
+        {
+            TempData["ErrorMessage"] = "IDが指定されていません。";
+            return RedirectToPage(new { SelectedMaster = "Holiday" });
+        }
+
+        if (EditHolidayComment?.Length > 200)
+        {
+            TempData["ErrorMessage"] = "コメントは200文字以内で入力してください。";
+            return RedirectToPage(new { SelectedMaster = "Holiday" });
+        }
+
+        try
+        {
+            await _repository.UpdateCustomHolidayCommentAsync(EditHolidayId, EditHolidayComment);
+            TempData["SuccessMessage"] = "祝日のコメントを更新しました。";
+        }
+        catch (Exception)
+        {
+            TempData["ErrorMessage"] = "祝日の更新に失敗しました。";
         }
 
         return RedirectToPage(new { SelectedMaster = "Holiday" });

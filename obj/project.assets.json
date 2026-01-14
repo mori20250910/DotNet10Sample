@@ -928,11 +928,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj",
+      "projectUniqueName": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj",
       "projectName": "DotNet10Sample",
-      "projectPath": "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj",
+      "projectPath": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj",
       "packagesPath": "C:\\Users\\mori\\.nuget\\packages\\",
-      "outputPath": "C:\\project\\DotNet10Sample\\obj\\",
+      "outputPath": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
@@ -998,7 +998,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

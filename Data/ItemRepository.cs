@@ -113,11 +113,16 @@ public class ItemRepository
             BEGIN
                 CREATE TABLE [CustomHolidays](
                     [Id] INT IDENTITY(1,1) PRIMARY KEY,
-                    [HolidayDate] DATE NOT NULL UNIQUE
+                    [HolidayDate] DATE NOT NULL UNIQUE,
+                    [Comment] NVARCHAR(200) NULL
                 );
             END
             """, connection);
         await createCustomHolidaysTableCommand.ExecuteNonQueryAsync();
+
+        // Ensure Comment column exists when upgrading from older schema
+        var addHolidayCommentColumn = new SqlCommand($"IF COL_LENGTH('CustomHolidays', 'Comment') IS NULL ALTER TABLE [CustomHolidays] ADD [Comment] NVARCHAR(200) NULL;", connection);
+        await addHolidayCommentColumn.ExecuteNonQueryAsync();
     }
 
     public async Task<int> InsertAsync(string itemCode, string itemName, string? categoryCode, string? remarks, DateTime? manufactureStartDate)
@@ -660,20 +665,22 @@ public class ItemRepository
     {
         public int Id { get; set; }
         public DateTime HolidayDate { get; set; }
+        public string? Comment { get; set; }
     }
 
     // CustomHoliday CRUD operations
-    public async Task<int> InsertCustomHolidayAsync(DateTime holidayDate)
+    public async Task<int> InsertCustomHolidayAsync(DateTime holidayDate, string? comment = null)
     {
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync();
 
         var command = new SqlCommand($"""
-            INSERT INTO [CustomHolidays] ([HolidayDate])
-            VALUES (@holidayDate);
+            INSERT INTO [CustomHolidays] ([HolidayDate], [Comment])
+            VALUES (@holidayDate, @comment);
             """, connection);
 
         command.Parameters.AddWithValue("@holidayDate", holidayDate.Date);
+        command.Parameters.AddWithValue("@comment", (object?)comment ?? DBNull.Value);
 
         try
         {
@@ -695,7 +702,7 @@ public class ItemRepository
         await connection.OpenAsync();
 
         var command = new SqlCommand($"""
-            SELECT [Id], [HolidayDate]
+            SELECT [Id], [HolidayDate], [Comment]
             FROM [CustomHolidays]
             ORDER BY [HolidayDate]
             """, connection);
@@ -707,11 +714,28 @@ public class ItemRepository
             holidays.Add(new CustomHoliday
             {
                 Id = reader.GetInt32(0),
-                HolidayDate = reader.GetDateTime(1)
+                HolidayDate = reader.GetDateTime(1),
+                Comment = reader.IsDBNull(2) ? null : reader.GetString(2)
             });
         }
 
         return holidays;
+    }
+
+    public async Task UpdateCustomHolidayCommentAsync(int id, string? comment)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync();
+
+        var command = new SqlCommand($"""
+            UPDATE [CustomHolidays]
+            SET [Comment] = @comment
+            WHERE [Id] = @id;
+            """, connection);
+
+        command.Parameters.AddWithValue("@id", id);
+        command.Parameters.AddWithValue("@comment", (object?)comment ?? DBNull.Value);
+        await command.ExecuteNonQueryAsync();
     }
 
     public async Task DeleteCustomHolidayAsync(int id)
