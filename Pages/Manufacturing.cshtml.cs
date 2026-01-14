@@ -26,6 +26,12 @@ public class ManufacturingModel : PageModel
     public Dictionary<int, DateTime?> ItemManufactureStartDates { get; private set; } = new();
     public HashSet<DateTime> Holidays { get; private set; } = new();
 
+    // Japanese national holidays (dates only)
+    public HashSet<DateTime> JapaneseHolidays { get; private set; } = new();
+
+    // Map of date -> holiday name or custom comment (shown in popup)
+    public Dictionary<DateTime, string?> HolidayLabels { get; private set; } = new();
+
     public async Task OnGetAsync()
     {
         // Default to current month if not specified
@@ -91,6 +97,43 @@ public class ManufacturingModel : PageModel
         }
 
         Holidays = holidaysList;
+
+        // Build holiday labels (holiday name or custom comment)
+        var holidayLabels = new Dictionary<DateTime, string?>();
+
+        // Japanese holidays with names
+        var japaneseHolidayDates = new HashSet<DateTime>();
+        for (var year = StartDate.Value.Year; year <= EndDate.Value.Year; year++)
+        {
+            var namedHolidays = await _repository.GetJapaneseHolidaysWithNamesAsync(year);
+            foreach (var nh in namedHolidays)
+            {
+                var d = nh.Date.Date;
+                if (!holidayLabels.ContainsKey(d))
+                {
+                    holidayLabels[d] = nh.Name;
+                }
+                japaneseHolidayDates.Add(d);
+            }
+        }
+        JapaneseHolidays = japaneseHolidayDates;
+
+        // Custom holidays (comments) - override name if comment present
+        foreach (var ch in customHolidays)
+        {
+            holidayLabels[ch.HolidayDate.Date] = string.IsNullOrWhiteSpace(ch.Comment) ? "休日" : ch.Comment;
+        }
+
+        // Weekends - if no label set, mark as '休日'
+        foreach (var date in PlanDates)
+        {
+            if ((date.DayOfWeek == DayOfWeek.Saturday || date.DayOfWeek == DayOfWeek.Sunday) && !holidayLabels.ContainsKey(date.Date))
+            {
+                holidayLabels[date.Date] = "休日";
+            }
+        }
+
+        HolidayLabels = holidayLabels;
 
         // Load existing plans
         var plans = await _repository.GetManufacturingPlansAsync(StartDate, EndDate);

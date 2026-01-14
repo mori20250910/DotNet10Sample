@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj": {}
+    "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj": {}
   },
   "projects": {
-    "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj": {
+    "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj",
+        "projectUniqueName": "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj",
         "projectName": "DotNet10Sample",
-        "projectPath": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\DotNet10Sample.csproj",
+        "projectPath": "C:\\project\\DotNet10Sample\\DotNet10Sample.csproj",
         "packagesPath": "C:\\Users\\mori\\.nuget\\packages\\",
-        "outputPath": "C:\\temp\\DotNet10SampleOtherUser\\DotNet10Sample\\obj\\",
+        "outputPath": "C:\\project\\DotNet10Sample\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"

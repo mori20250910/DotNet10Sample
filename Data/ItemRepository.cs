@@ -629,6 +629,56 @@ public class ItemRepository
         return Task.FromResult(holidays);
     }
 
+    // Named holiday with date and name
+    public class NamedHoliday
+    {
+        public DateTime Date { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public Task<List<NamedHoliday>> GetJapaneseHolidaysWithNamesAsync(int year)
+    {
+        var holidays = new List<NamedHoliday>();
+
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 1, 1), Name = "元日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 2, 11), Name = "建国記念の日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 2, 23), Name = "天皇誕生日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 4, 29), Name = "昭和の日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 5, 3), Name = "憲法記念日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 5, 4), Name = "みどりの日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 5, 5), Name = "こどもの日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 8, 10), Name = "山の日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 11, 3), Name = "文化の日" });
+        holidays.Add(new NamedHoliday { Date = new DateTime(year, 11, 23), Name = "勤労感謝の日" });
+
+        // 成人の日
+        holidays.Add(new NamedHoliday { Date = GetNthDayOfMonth(year, 1, DayOfWeek.Monday, 2), Name = "成人の日" });
+        // 春分の日
+        holidays.Add(new NamedHoliday { Date = GetVernalEquinox(year), Name = "春分の日" });
+        // 海の日
+        holidays.Add(new NamedHoliday { Date = GetNthDayOfMonth(year, 7, DayOfWeek.Monday, 3), Name = "海の日" });
+        // 敬老の日
+        holidays.Add(new NamedHoliday { Date = GetNthDayOfMonth(year, 9, DayOfWeek.Monday, 3), Name = "敬老の日" });
+        // 秋分の日
+        holidays.Add(new NamedHoliday { Date = GetAutumnalEquinox(year), Name = "秋分の日" });
+        // 体育の日(スポーツの日)
+        holidays.Add(new NamedHoliday { Date = GetNthDayOfMonth(year, 10, DayOfWeek.Monday, 2), Name = "スポーツの日" });
+
+        // Substitute holidays (振替休日) - If holiday falls on Sunday, following Monday is substitute
+        var sundayHolidays = holidays.Where(d => d.Date.DayOfWeek == DayOfWeek.Sunday).ToList();
+        foreach (var holiday in sundayHolidays)
+        {
+            var substituteDate = holiday.Date.AddDays(1);
+            if (!holidays.Any(h => h.Date == substituteDate))
+            {
+                holidays.Add(new NamedHoliday { Date = substituteDate, Name = "振替休日" });
+            }
+        }
+
+        holidays = holidays.OrderBy(d => d.Date).GroupBy(h => h.Date).Select(g => g.First()).ToList();
+        return Task.FromResult(holidays);
+    }
+
     private DateTime GetNthDayOfMonth(int year, int month, DayOfWeek dayOfWeek, int n)
     {
         var date = new DateTime(year, month, 1);
