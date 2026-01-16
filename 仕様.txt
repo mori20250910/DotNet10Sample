@@ -1,0 +1,240 @@
+DotNet10Sample プロジェクト 基本設計書
+
+1. システム概要
+
+1.1 システム名
+DotNet10Sample（アイテム管理システム）
+
+1.2 システムの目的
+商品・アイテムの情報を一元管理し、検索・登録・編集・削除機能を提供するWebアプリケーション
+
+1.3 対象ユーザー
+内部スタッフ・管理者
+
+1.4 システム環境
+- フレームワーク: ASP.NET Core 10.0
+- 言語: C#
+- Webテクノロジ: Razor Pages
+- データベース: SQL Server
+- 認証: Azure Active Directory（Azure.Identity）
+
+
+2. アーキテクチャ
+
+2.1 全体構成図
+┌─────────────────────────────────┐
+│    Web UI (Razor Pages)         │
+│  - Index / Detail / Search      │
+│  - Register / Manufacturing     │
+│  - Master / Privacy / Error     │
+└─────────────────┬───────────────┘
+                  │
+┌─────────────────▼───────────────┐
+│   Presentation Layer            │
+│  - Pages (*.cshtml)             │
+│  - Pages (*.cshtml.cs)          │
+└─────────────────┬───────────────┘
+                  │
+┌─────────────────▼───────────────┐
+│   Business Logic Layer          │
+│  - ItemRepository               │
+└─────────────────┬───────────────┘
+                  │
+┌─────────────────▼───────────────┐
+│   Data Access Layer             │
+│  - SQL Server Connection        │
+│  - SQL Commands Execution       │
+└─────────────────┬───────────────┘
+                  │
+┌─────────────────▼───────────────┐
+│   Database Layer                │
+│  - SQL Server Database          │
+│  - Items Table                  │
+└─────────────────────────────────┘
+
+2.2 技術スタック
+レイヤー | 技術 | 説明
+-----------|------|------
+Web Framework | ASP.NET Core 10.0 | Razor Pages対応
+UI/View | Razor Pages | サーバーサイドレンダリング
+Language | C# 13 | 最新言語機能対応
+Authentication | Azure Identity | AAD統合
+Database Access | Microsoft.Data.SqlClient | SQL Server接続
+Database | SQL Server | エンタープライズDB
+
+
+3. データベース設計
+
+3.1 テーブル定義
+
+Items テーブル
+カラム名 | データ型 | キー | 説明
+---------|---------|------|------
+Id | INT | PRIMARY KEY | アイテムID（自動採番）
+Code | NVARCHAR(5) | - | アイテムコード（必須）
+Name | NVARCHAR(10) | - | アイテム名（必須）
+CategoryCode | NVARCHAR(10) | - | カテゴリコード
+Remarks | NVARCHAR(100) | - | 備考
+ManufactureStartDate | DATE | - | 製造開始日
+
+3.2 データベース初期化
+- システム起動時に自動でデータベース・テーブルを生成
+- 既存テーブルがある場合はスキップ
+- 新規カラムは自動で追加
+
+
+4. 機能一覧
+
+4.1 主要機能
+
+機能ID | 機能名 | 説明 | 対応画面
+--------|--------|------|--------
+F001 | 一覧表示 | 登録済みアイテムの一覧を表示 | Index.cshtml
+F002 | 詳細表示 | アイテムの詳細情報を表示 | Detail.cshtml
+F003 | 検索機能 | アイテムをキーワード検索 | Search.cshtml
+F004 | 新規登録 | 新しいアイテムを登録 | Register.cshtml
+F005 | 編集 | 既存アイテム情報を編集 | Detail.cshtml
+F006 | 削除 | アイテムを削除 | Detail.cshtml
+F007 | 製造管理 | アイテムの製造情報を管理 | Manufacturing.cshtml
+F008 | マスタ管理 | マスタデータを管理 | Master.cshtml
+
+4.2 メニュー構成
+トップページ（Index）
+├── 一覧表示
+├── 詳細表示（Detail）
+├── 新規登録（Register）
+├── 検索（Search）
+├── 製造管理（Manufacturing）
+├── マスタ管理（Master）
+├── プライバシーポリシー（Privacy）
+└── エラー画面（Error）
+
+
+5. 画面構成
+
+5.1 レイアウト構成
+
+共通レイアウト: _Layout.cshtml
+- ナビゲーションバー
+- フッター
+- スタイルシート（_Layout.cshtml.css）
+- 検証スクリプト（_ValidationScriptsPartial.cshtml）
+
+5.2 画面一覧
+
+画面ID | 画面名 | ファイル | 説明
+--------|--------|---------|------
+P001 | ホーム画面 | Index.cshtml | アイテム一覧表示
+P002 | 詳細画面 | Detail.cshtml | アイテム詳細・編集・削除
+P003 | 検索画面 | Search.cshtml | アイテム検索結果表示
+P004 | 登録画面 | Register.cshtml | 新規アイテム登録フォーム
+P005 | 製造管理画面 | Manufacturing.cshtml | 製造情報管理
+P006 | マスタ管理画面 | Master.cshtml | マスタデータ管理
+P007 | プライバシー画面 | Privacy.cshtml | プライバシーポリシー表示
+P008 | エラー画面 | Error.cshtml | エラー表示
+
+5.3 画面遷移図
+Index（一覧）
+  ├→ Detail（詳細）
+  │   ├→ 編集
+  │   ├→ 削除
+  │   └→ Index（戻る）
+  ├→ Register（登録）
+  │   └→ Index（完了）
+  ├→ Search（検索）
+  │   └→ Detail（詳細）
+  ├→ Manufacturing（製造管理）
+  │   └→ Index（戻る）
+  └→ Master（マスタ管理）
+      └→ Index（戻る）
+
+
+6. クラス設計
+
+6.1 ItemRepository クラス
+
+メソッド | 説明 | パラメータ | 戻り値
+---------|------|----------|-----
+EnsureDatabaseAsync() | DB・テーブル初期化 | なし | Task
+GetAllItemsAsync() | 全アイテム取得 | なし | List<Item>
+GetItemByIdAsync() | IDでアイテム検索 | id (int) | Item
+SearchItemsAsync() | キーワード検索 | keyword (string) | List<Item>
+AddItemAsync() | 新規登録 | item (Item) | Task
+UpdateItemAsync() | 更新 | item (Item) | Task
+DeleteItemAsync() | 削除 | id (int) | Task
+
+6.2 Item モデル
+
+プロパティ | 型 | 説明
+-----------|-----|------
+Id | int | アイテムID
+Code | string | アイテムコード
+Name | string | アイテム名
+CategoryCode | string | カテゴリコード
+Remarks | string | 備考
+ManufactureStartDate | DateTime? | 製造開始日
+
+
+7. セキュリティ設計
+
+7.1 認証・認可
+- Azure Active Directory（Azure.Identity）で認証
+- ロールベースのアクセス制御（RBAC）
+
+7.2 データ保護
+- SQL Server での暗号化
+- パラメータ化クエリでSQLインジェクション対策
+- HTTPS通信の強制（本番環境）
+
+7.3 HSTS（HTTP Strict Transport Security）
+- 本番環境で有効化（デフォルト30日）
+
+
+8. システム構成
+
+8.1 フォルダ構成
+DotNet10Sample/
+├── Pages/                  # Razor Pagesビュー
+│   ├── _ViewImports.cshtml
+│   ├── _ViewStart.cshtml
+│   ├── Index.cshtml
+│   ├── Detail.cshtml
+│   ├── Search.cshtml
+│   ├── Register.cshtml
+│   ├── Manufacturing.cshtml
+│   ├── Master.cshtml
+│   ├── Privacy.cshtml
+│   ├── Error.cshtml
+│   └── Shared/             # 共有レイアウト
+├── Data/                   # データアクセス層
+│   └── ItemRepository.cs
+├── wwwroot/                # 静的ファイル
+│   ├── css/
+│   ├── js/
+│   └── lib/
+├── Properties/
+│   └── launchSettings.json
+├── Program.cs              # エントリーポイント
+├── DotNet10Sample.csproj   # プロジェクトファイル
+└── appsettings.json        # 設定ファイル
+
+
+9. 外部依存関係
+
+パッケージ | バージョン | 用途
+-----------|-----------|------
+Azure.Identity | 1.11.4 | Azure AD認証
+Microsoft.Data.SqlClient | 5.2.0 | SQL Server接続
+
+
+10. 非機能要件
+
+項目 | 要件
+------|------
+パフォーマンス | 初期表示時間 3秒以内
+可用性 | 99.5% 以上
+スケーラビリティ | 同時接続ユーザー 1000名対応
+バックアップ | 日次自動バックアップ
+ログ | 全操作のログ記録
+
+以上
