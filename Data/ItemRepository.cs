@@ -213,7 +213,7 @@ public class ItemRepository
             command.Parameters.AddWithValue("@category", categoryCode);
         }
 
-        var items = new List<Item>();
+        var items = new list<item>();
         await using var reader = await command.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {

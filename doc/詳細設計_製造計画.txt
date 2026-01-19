@@ -300,8 +300,9 @@ C004 | 表示ボタン | <button type="submit"> | - | フォーム送信
 ボタンID | ボタン名 | 初期状態 | クリック時動作 | 説明
 ---------|---------|--------|----------------|-------
 B001 | CSV出力 | 有効 | テーブル→CSV変換ダウンロード | テーブルデータをCSV形式で出力
-B002 | 保存 | 有効 | フォーム送信（AJAX） | 製造計画をデータベースに保存
-B003 | メニューに戻る | 有効 | ページ遷移 | メニュー画面へ遷移
+B002 | PDF出力 | 有効 | テーブル→PDF生成ダウンロード | テーブルデータをPDF形式で出力
+B003 | 保存 | 有効 | フォーム送信（AJAX） | 製造計画をデータベースに保存
+B004 | メニューに戻る | 有効 | ページ遷移 | メニュー画面へ遷移
 
 6.2 各ボタンの詳細仕様
 
@@ -320,8 +321,26 @@ B003 | メニューに戻る | 有効 | ページ遷移 | メニュー画面へ�
 		7. ファイル名: manufacturing_{YearMonth}.csv（例：manufacturing_2026-01.csv）
 		8. ブラウザでダウンロード
 
-【保存】
+【PDF出力】
 	- ボタンID: B002
+	- HTML要素: <button type="button" id="exportPdfBtn">
+	- ボタン名: "PDF出力"
+	- スタイル: btn btn-outline-secondary
+	- クリック時動作:
+		1. 月が指定されているか確認
+		2. フォームデータを構築
+		3. YearMonth を指定
+		4. fetch で POST リクエスト送信
+			- ハンドラ: ExportPdf
+			- ヘッダ: X-Requested-With: XMLHttpRequest
+			- レスポンスを blob で受け取り
+		5. PDF ファイルを blob から生成
+		6. ダイナミックリンクを作成してダウンロード
+		7. ファイル名: manufacturing_{YearMonth}.pdf（例：manufacturing_2026-01.pdf）
+		8. エラー時は alert で通知
+
+【保存】
+	- ボタンID: B003
 	- HTML要素: <button type="button" id="saveBtn">
 	- ボタン名: "保存"
 	- スタイル: btn btn-primary
@@ -353,7 +372,7 @@ B003 | メニューに戻る | 有効 | ページ遷移 | メニュー画面へ�
 			  - "通信エラーが発生しました。" を表示
 
 【メニューに戻る】
-	- ボタンID: B003
+	- ボタンID: B004
 	- HTML要素: <a asp-page="/Index">
 	- ボタン名: "メニューに戻る"
 	- スタイル: btn btn-secondary
@@ -560,7 +579,57 @@ M003 | サーバーエラー | フォーム内 | サーバー処理失敗時 | t
 	  - date < item.ManufactureStartDate.Value ⇒ エラー
 
 
-9.3 データベース操作
+9.3 OnPostExportPdfAsync() メソッド
+
+【概要】
+テーブルデータを PDF ファイルに変換して返す処理
+
+【処理フロー】
+1. YearMonth パラメータを取得
+2. DateTime.TryParse で yyyy-MM-01 形式で解析
+3. 失敗時は BadRequest (400) で月未指定エラーを返す
+4. StartDate、EndDate を計算
+5. すべての品目を取得（SearchAsync）
+6. 日付リスト（PlanDates）を生成
+7. 製造計画データを取得（GetManufacturingPlansAsync）
+8. メモリストリームに PDF を生成:
+	- PdfWriter を使用してメモリストリームに書き込み
+	- PdfDocument を作成
+	- Document を作成（マージン: 10px）
+	
+9. PDF コンテンツ構成:
+	a. タイトル段落:
+		- 内容: "製造計画 (yyyy年M月d日 ～ M月d日)"
+		- フォントサイズ: 16px、太字
+	
+	b. テーブル生成:
+		- 列数: 1（品目）+ 日付数
+		- 幅: 100%
+		
+		ヘッダ行:
+		  - 1列目: "品目"（太字）
+		  - 日付列: "M/d\n(ddd)"（フォント8px）
+		
+		データ行:
+		  - 品目列: 品目名（10px）
+		  - 数量列: 製造数または空（9px、中央配置）
+	
+	c. フッター段落:
+		- 内容: "生成日時: yyyy年MM月dd日 HH:mm:ss"
+		- フォントサイズ: 9px
+
+10. メモリストリームの位置を 0 にリセット
+11. File() で PDF を返す:
+	- MimeType: application/pdf
+	- FileName: manufacturing_{YearMonth}.pdf
+
+【エラーハンドリング】
+	例外発生時:
+	  - StatusCode (500) でエラーメッセージを返す
+	  - メッセージ: "PDF生成に失敗しました。"
+
+
+9.4 データベース操作
 
 【SearchAsync】
 	- 用途: キーワードで品目を検索（null の場合は全件取得）
@@ -730,7 +799,50 @@ M003 | サーバーエラー | フォーム内 | サーバー処理失敗時 | t
 10. リンク削除、ObjectURL を解放
 
 
-10.5 スタイル設定
+10.5 PDF出力機能
+
+【概要】
+テーブルのデータをPDF形式に変換してダウンロード
+
+【処理フロー】
+1. e.preventDefault()
+2. YearMonth フィールドの値を確認
+3. 月が指定されていない場合は alert で通知して終了
+4. FormData を構築:
+	- planForm から全フォームデータを取得
+	- YearMonth を設定
+5. URLSearchParams に変換
+6. fetch で POST リクエスト送信:
+	- ハンドラ: ExportPdf
+	- ヘッダ: X-Requested-With: XMLHttpRequest
+	- レスポンスを blob で受け取り
+7. レスポンス評価:
+	成功時（200-299）:
+	  - blob を取得
+	  - ObjectURL を生成
+	  - ダイナミックリンク要素を作成
+	  - ダウンロード属性を設定（manufacturing_{YearMonth}.pdf）
+	  - リンクをクリック（自動ダウンロード）
+	  - リンク削除、ObjectURL を解放
+	
+	エラー時:
+	  - alert で "PDF出力に失敗しました。" を通知
+
+【サーバーサイド処理】
+OnPostExportPdfAsync メソッドで以下を実行:
+1. YearMonth パラメータを取得・検証
+2. StartDate、EndDate を計算
+3. 品目リスト、製造計画データを取得
+4. iText7 ライブラリで PDF を生成:
+	- タイトル: "製造計画 (yyyy年M月d日 ～ M月d日)"
+	- テーブル構成: 品目名 + 日付別製造数
+	- フォント: 日本語対応フォント
+	- 生成日時をフッターに表示
+5. PDF を File() で返す
+6. ファイル名: manufacturing_{YearMonth}.pdf
+
+
+10.6 スタイル設定
 
 【テーブル】
 	- table: margin-bottom: 0

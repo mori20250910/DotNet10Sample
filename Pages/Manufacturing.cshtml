@@ -67,7 +67,7 @@
                             <strong>@item.Name</strong>
                             @if (Model.ItemManufactureStartDates.ContainsKey(item.Id) && Model.ItemManufactureStartDates[item.Id].HasValue)
                             {
-                                <div class="small text-muted">製造開始: @Model.ItemManufactureStartDates[item.Id].Value.ToString("yyyy/M/d")</div>
+                                <div class="small text-muted">製造開始: @(Model.ItemManufactureStartDates[item.Id]?.ToString("yyyy/M/d"))</div>
                             }
                         </td>
                         @foreach (var date in Model.PlanDates)
@@ -75,7 +75,7 @@
                             var quantity = Model.PlanData.ContainsKey((item.Id, date)) ? Model.PlanData[(item.Id, date)] : 0;
                             var isBeforeManufactureStart = Model.ItemManufactureStartDates.ContainsKey(item.Id) && 
                                                            Model.ItemManufactureStartDates[item.Id].HasValue && 
-                                                           date < Model.ItemManufactureStartDates[item.Id].Value;
+                                                           date < Model.ItemManufactureStartDates[item.Id].GetValueOrDefault();
                             var isHoliday = Model.Holidays.Contains(date.Date);
                             var note = Model.HolidayLabels.ContainsKey(date.Date) ? Model.HolidayLabels[date.Date] : null;
                             <td style="text-align: center; @(isHoliday ? "background-color: #ffcccb;" : "")" data-holiday-note="@(note ?? "")" title="@(note ?? "")" class="@(note != null ? "has-note" : "")">
@@ -102,6 +102,7 @@
 
     <div class="d-flex justify-content-end gap-2">
         <button type="button" id="exportCsvBtn" class="btn btn-outline-secondary">CSV出力</button>
+        <button type="button" id="exportPdfBtn" class="btn btn-outline-secondary">PDF出力</button>
         <button type="button" id="saveBtn" class="btn btn-primary">保存</button>
         <a asp-page="/Index" class="btn btn-secondary">メニューに戻る</a>
     </div>       
@@ -315,6 +316,67 @@
                     a.click();
                     a.remove();
                     URL.revokeObjectURL(url);
+                });
+            }
+
+            // PDF出力ボタンハンドラ
+            const exportPdfBtn = document.getElementById('exportPdfBtn');
+            if (exportPdfBtn) {
+                exportPdfBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    const yearMonthField = document.getElementById('yearMonthHidden');
+                    const ym = document.getElementById('yearMonth') ? document.getElementById('yearMonth').value : '';
+                    
+                    if (!ym) {
+                        alert('月が指定されていません。');
+                        return;
+                    }
+
+                    // フォームデータを構築
+                    const formData = new FormData(planForm);
+                    formData.set('YearMonth', ym);
+
+                    const body = new URLSearchParams();
+                    for (const pair of formData.entries()) {
+                        body.append(pair[0], pair[1]);
+                    }
+
+                    // POST リクエストで PDF を取得
+                    fetch(window.location.pathname + '?handler=ExportPdf', {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: body
+                    })
+                    .then(res => {
+                        if (res.ok) {
+                            return res.blob().then(blob => ({ ok: true, blob: blob }));
+                        } else {
+                            // エラーレスポンスをJSON として解析
+                            return res.json().then(data => {
+                                return { ok: false, error: data.message || 'PDF生成に失敗しました。' };
+                            });
+                        }
+                    })
+                    .then(result => {
+                        if (result.ok) {
+                            const url = URL.createObjectURL(result.blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.setAttribute('download', `manufacturing_${ym}.pdf`);
+                            document.body.appendChild(a);
+                            a.click();
+                            a.remove();
+                            URL.revokeObjectURL(url);
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    })
+                    .catch(err => {
+                        alert(err.message || 'PDF出力に失敗しました。');
+                    });
                 });
             }
         })();
