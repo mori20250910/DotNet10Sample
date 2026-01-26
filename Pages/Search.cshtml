@@ -16,48 +16,12 @@
                 <form method="post" novalidate>
                     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-                    <div class="row g-2">
-                        <div class="col-md-4 mb-3">
-                            <label for="ItemCode" class="form-label">品目コード (完全一致)</label>
-                            <input type="text" class="form-control" id="ItemCode" name="ItemCode" value="@Model.ItemCode" />
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="ItemName" class="form-label">品目名 (部分一致)</label>
-                            <input type="text" class="form-control" id="ItemName" name="ItemName" value="@Model.ItemName" />
-                        </div>
-
-                        <div class="col-md-4 mb-3">
-                            <label for="CategoryCode" class="form-label">品目カテゴリ</label>
-                            <select id="CategoryCode" name="CategoryCode" class="form-select">
-                                <option value="">-- 未選択 --</option>
-                                @if (Model.CategoryCode == "__NULL__")
-                                {
-                                    <option value="__NULL__" selected>-- 未設定（NULL） --</option>
-                                }
-                                else
-                                {
-                                    <option value="__NULL__">-- 未設定（NULL） --</option>
-                                }
-                                @foreach (var c in Model.Categories)
-                                {
-                                    if (Model.CategoryCode == c.Code)
-                                    {
-                                        <option value="@c.Code" selected>@c.Code - @c.Name</option>
-                                    }
-                                    else
-                                    {
-                                        <option value="@c.Code">@c.Code - @c.Name</option>
-                                    }
-                                }
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label for="ItemName" class="form-label">品目名</label>
+                        <input type="text" class="form-control" id="ItemName" name="ItemName" value="@Model.ItemName" />
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">検索</button>
-                        <button type="button" id="clearButton" class="btn btn-secondary">クリア</button>
-                    </div>
+                    <button type="submit" class="btn btn-primary">検索</button>
                 </form>
             </div>
         </div>
@@ -77,11 +41,7 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>品目コード</th>
                                 <th>品目名</th>
-                                <th>カテゴリ</th>
-                                <th>製造開始年月日</th>
-                                <th>備考</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -89,11 +49,7 @@
                             {
                                 <tr class="table-row-clickable" data-item-id="@item.Id">
                                     <td>@item.Id</td>
-                                    <td>@item.Code</td>
                                     <td>@item.Name</td>
-                                    <td>@item.CategoryName</td>
-                                    <td>@(item.ManufactureStartDate.HasValue ? item.ManufactureStartDate.Value.ToString("yyyy-MM-dd") : "")</td>
-                                    <td>@item.Remarks</td>
                                 </tr>
                             }
                         </tbody>
@@ -107,10 +63,6 @@
                 {
                     <p class="text-muted">検索条件を入力して検索ボタンをクリックしてください。</p>
                 }
-
-                <div class="d-flex justify-content-end mt-3">
-                    <button type="button" id="exportCsv" class="btn btn-outline-secondary" @(Model.SearchResults.Any() ? "" : "disabled")>CSVダウンロード</button>
-                </div>
             </div>
         </div>
     </div>
@@ -122,15 +74,7 @@
             row.style.cursor = 'pointer';
             row.addEventListener('dblclick', function() {
                 var itemId = this.getAttribute('data-item-id');
-                var code = document.getElementById('ItemCode')?.value || '';
-                var name = document.getElementById('ItemName')?.value || '';
-                var category = document.getElementById('CategoryCode')?.value || '';
-                var params = new URLSearchParams();
-                params.append('id', itemId);
-                if (code) params.append('ReturnItemCode', code);
-                if (name) params.append('ReturnItemName', name);
-                if (category) params.append('ReturnCategoryCode', category);
-                window.location.href = '@Url.Page("/Detail")' + '?' + params.toString();
+                window.location.href = '@Url.Page("/Detail")?id=' + itemId;
             });
             row.addEventListener('mouseenter', function() {
                 this.style.backgroundColor = '#f0f0f0';
@@ -139,42 +83,5 @@
                 this.style.backgroundColor = '';
             });
         });
-
-        // Clear button handler for search form
-        (function() {
-            var clearBtn = document.getElementById('clearButton');
-            if (!clearBtn) return;
-            clearBtn.addEventListener('click', function() {
-                var code = document.getElementById('ItemCode');
-                var name = document.getElementById('ItemName');
-                var category = document.getElementById('CategoryCode');
-
-                if (code) code.value = '';
-                if (name) name.value = '';
-                if (category) category.value = '';
-
-                // Clear any validation messages (client-side summary)
-                var summary = document.querySelector('[asp-validation-summary]');
-                if (summary) summary.innerHTML = '';
-            });
-        })();
-
-        // CSV export button: constructs query string from current inputs and navigates to handler=ExportCsv
-        (function() {
-            var exportBtn = document.getElementById('exportCsv');
-            if (!exportBtn) return;
-            exportBtn.addEventListener('click', function() {
-                var code = document.getElementById('ItemCode')?.value || '';
-                var name = document.getElementById('ItemName')?.value || '';
-                var category = document.getElementById('CategoryCode')?.value || '';
-                var params = new URLSearchParams();
-                if (code) params.append('ItemCode', code);
-                if (name) params.append('ItemName', name);
-                if (category) params.append('CategoryCode', category);
-                params.append('handler', 'ExportCsv');
-                var url = '@Url.Page("/Search")' + '?' + params.toString();
-                window.location.href = url;
-            });
-        })();
     </script>
 }
